@@ -1,0 +1,34 @@
+trigger:
+- main
+
+pool:
+  vmImage: ubuntu-latest
+
+stages:
+- stage: CI
+  displayName: 'Build y Test'
+  jobs:
+  - job: BuildAndTest
+    steps:
+    - task: NodeTool@0
+      inputs:
+        versionSpec: '18.x'
+      displayName: 'Instalar Node.js 18'
+
+    - script: npm ci
+      displayName: 'Instalar dependencias'
+
+    - script: npm test
+      displayName: 'Correr tests'
+
+    - script: |
+        mkdir artifact_staging
+        cp -r index.js package.json package-lock.json artifact_staging/
+        cp -r node_modules artifact_staging/
+      displayName: 'Empaquetar artefacto'
+
+    - task: PublishBuildArtifacts@1
+      inputs:
+        PathtoPublish: 'artifact_staging'
+        ArtifactName: 'app-artifact'
+      displayName: 'Publicar artefacto'
