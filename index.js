@@ -10,8 +10,12 @@ app.get('/api/hello', (req, res) => {
   });
 });
 
-app.listen(port, () => {
-  console.log(`App escuchando en puerto ${port} - ambiente: ${environment}`);
-});
+// Solo levanta el servidor si este archivo se ejecuta directamente,
+// no cuando lo importa el test
+if (require.main === module) {
+  app.listen(port, () => {
+    console.log(`App escuchando en puerto ${port} - ambiente: ${environment}`);
+  });
+}
 
-module.exports = app; // para poder testear sin levantar el server
+module.exports = app;
