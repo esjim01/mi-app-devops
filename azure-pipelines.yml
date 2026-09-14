@@ -1,14 +1,13 @@
 trigger:
 - main
 
-pool:
-  vmImage: ubuntu-latest
-
 stages:
 - stage: CI
   displayName: 'Build y Test'
   jobs:
   - job: BuildAndTest
+    pool:
+      vmImage: ubuntu-latest
     steps:
     - task: NodeTool@0
       inputs:
@@ -32,3 +31,72 @@ stages:
         PathtoPublish: 'artifact_staging'
         ArtifactName: 'app-artifact'
       displayName: 'Publicar artefacto'
+
+- stage: DEV
+  displayName: 'Deploy DEV'
+  dependsOn: CI
+  condition: succeeded()
+  variables:
+    APP_ENVIRONMENT: 'DEV'
+  jobs:
+  - deployment: DeployDEV
+    environment: 'DEV'
+    pool:
+      vmImage: ubuntu-latest
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - script: |
+              cd $(Pipeline.Workspace)/app-artifact
+              APP_ENVIRONMENT=$(APP_ENVIRONMENT) node index.js &
+              sleep 3
+              curl http://localhost:3000/api/hello
+              kill %1
+            displayName: 'Desplegar y validar en DEV'
+
+- stage: QA
+  displayName: 'Deploy QA'
+  dependsOn: DEV
+  condition: succeeded()
+  variables:
+    APP_ENVIRONMENT: 'QA'
+  jobs:
+  - deployment: DeployQA
+    environment: 'QA'
+    pool:
+      vmImage: ubuntu-latest
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - script: |
+              cd $(Pipeline.Workspace)/app-artifact
+              APP_ENVIRONMENT=$(APP_ENVIRONMENT) node index.js &
+              sleep 3
+              curl http://localhost:3000/api/hello
+              kill %1
+            displayName: 'Desplegar y validar en QA'
+
+- stage: PDN
+  displayName: 'Deploy PDN'
+  dependsOn: QA
+  condition: succeeded()
+  variables:
+    APP_ENVIRONMENT: 'PDN'
+  jobs:
+  - deployment: DeployPDN
+    environment: 'PDN'
+    pool:
+      vmImage: ubuntu-latest
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - script: |
+              cd $(Pipeline.Workspace)/app-artifact
+              APP_ENVIRONMENT=$(APP_ENVIRONMENT) node index.js &
+              sleep 3
+              curl http://localhost:3000/api/hello
+              kill %1
+            displayName: 'Desplegar y validar en PDN'
